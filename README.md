@@ -12,3 +12,5 @@ Now once squamigera starts running, it will start sorting your pixels with a ran
 Finally, after a while the image will start looking a lot better:
 
 ![sorted](/res/sorted.png)
+
+NOTE: the program currently does not support screen scaling, so set the scale to 100% for it to capture the entire screen.
