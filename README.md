@@ -7,8 +7,8 @@ As an example take this unsorted image below:
 
 Now once squamigera starts running, it will start sorting your pixels with a randomized algorithm, which gives us the visually pleasing result:
 
-![progress]{/res/progress.png}
+![progress](/res/progress.png)
 
 Finally, after a while the image will start looking a lot better:
 
-![sorted]{/res/sorted.png}
+![sorted](/res/sorted.png)
