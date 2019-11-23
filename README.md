@@ -5,7 +5,7 @@ As an example take this unsorted image below:
 
 ![unsorted](/res/unsorted.png)
 
-Now once squamigera starts running, it will start sorting your pixels with a randomized algorithm, which gives us the visually pleasing result:
+Now once squamigera starts running, it will start sorting your pixels with a given algorithm, for example, for the random swap sorting algorithm we might get the following:
 
 ![progress](/res/progress.png)
 
@@ -14,3 +14,11 @@ Finally, after a while the image will start looking a lot better:
 ![sorted](/res/sorted.png)
 
 NOTE: the program currently does not support screen scaling, so set the scale to 100% for it to capture the entire screen.
+
+OPTIONS:
+The program can take a sorting algorithm as argument, the accepted algorithms are:
+
+insertion
+merge
+quick
+random_swap

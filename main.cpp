@@ -2,33 +2,76 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <cstring>
 
-const size_t NUM_SORT = (1920 * 1080);
-const size_t SLEEP_TIMEOUT = 10 * 1000;
-const size_t SORT_LOOKAHEAD = 128;
+#include "sort/insertion.hpp"
+#include "sort/merge.hpp"
+#include "sort/quick.hpp"
+#include "sort/random_swap.hpp"
 
-template <typename T>
-void modify_buffer(DWORD* data, size_t width, size_t height, T& random_engine) {
-    size_t max = width * height;
-    for(size_t i = 0; i < NUM_SORT; ++i) {
-        size_t p1 = random_engine() % (max-1);
-        size_t p2 = p1 + random_engine() % SORT_LOOKAHEAD;
-        if(p2 >= max)
-            p2 = max-1;
+const size_t SLEEP_TIMEOUT = 3 * 1000;
 
-        if(p1 > p2)
-            std::swap(p1, p2);
+enum class SortAlgorithm {
+    INSERTION_SORT,
+    MERGE_SORT,
+    QUICK_SORT,
+    RANDOM_SWAP_SORT
+};
 
-        if(data[p1] > data[p2])
-            std::swap(data[p1], data[p2]);
+const char* const ALGORITHM_NAMES[] = {
+    "insertion",
+    "merge",
+    "quick",
+    "random_swap"
+};
+
+const size_t NUM_ALGORITHMS = 4;
+
+size_t SORT_SPEEDS[] = {
+    2 << 20, //Insertion
+    2 << 5, //Merge
+    2 << 3, //Quick
+    2 << 18 //Random swap
+};
+
+template <typename C>
+void run_sorter(SortAlgorithm algorithm, DWORD* data, size_t width, size_t height, C update) {
+    switch(algorithm) {
+        case SortAlgorithm::INSERTION_SORT:
+            insertion_sort(data, width, height, update);
+            break;
+        case SortAlgorithm::MERGE_SORT:
+            merge_sort(data, width, height, update);
+            break;
+        case SortAlgorithm::QUICK_SORT:
+            quick_sort(data, width, height, update);
+            break;
+        case SortAlgorithm::RANDOM_SWAP_SORT:
+            random_swap_sort(data, width, height, update);
+            break;
     }
 }
 
-int main() {
-    std::minstd_rand engine;
-    std::random_device seed_device;
-    engine.seed(seed_device());
+SortAlgorithm convert_algorithm(const char* alg_name) {
+    for(size_t i = 0; i < NUM_ALGORITHMS; ++i) {
+        if(std::strcmp(alg_name, ALGORITHM_NAMES[i]) == 0)
+            return (SortAlgorithm)i;
+    }
+    return SortAlgorithm::RANDOM_SWAP_SORT;
+}
 
+int main(int argc, char* argv[]) {
+    SortAlgorithm algorithm;
+
+    if(argc >= 2) {
+        algorithm = convert_algorithm(argv[1]);
+    }
+    else {
+        std::random_device rd;
+        std::minstd_rand random(rd());
+
+        algorithm = (SortAlgorithm)(random() % NUM_ALGORITHMS);
+    }
     Sleep(SLEEP_TIMEOUT);
 
     HDC desktop_device = GetDC(0);
@@ -37,6 +80,8 @@ int main() {
     GetClientRect(WindowFromDC(desktop_device), &window_rect);
     size_t width = window_rect.right - window_rect.left;
     size_t height = window_rect.bottom - window_rect.top;
+
+    bool active = true;
 
     while(1) {
         HBITMAP screen_bitmap = CreateCompatibleBitmap(desktop_device, width, height);
@@ -55,10 +100,21 @@ int main() {
 
         DWORD result = GetDIBits(desktop_device, screen_bitmap, 0, height, bytes, (BITMAPINFO*)&bitmap_header, DIB_RGB_COLORS);
         if(result > 0) {
-            modify_buffer(bytes, width, height, engine);
+            size_t sort_offset = 0;
+            auto update_screen = [&]() {
+                ++sort_offset;
+                if(sort_offset >= SORT_SPEEDS[(size_t)algorithm])
+                {
+                    SetDIBits(desktop_device, screen_bitmap, 0, height, bytes, (BITMAPINFO*)&bitmap_header, DIB_RGB_COLORS);
+                    BitBlt(desktop_device, 0, 0, width, height, capture, 0, 0, SRCCOPY | CAPTUREBLT);
+                    sort_offset = 0;
+                }
+            };
 
-            SetDIBits(desktop_device, screen_bitmap, 0, height, bytes, (BITMAPINFO*)&bitmap_header, DIB_RGB_COLORS);
-            BitBlt(desktop_device, 0, 0, width, height, capture, 0, 0, SRCCOPY | CAPTUREBLT);
+            while(active) {
+                run_sorter(algorithm, bytes, width, height, update_screen);
+                update_screen();
+            }
         }
         SelectObject(capture, obj);
 
