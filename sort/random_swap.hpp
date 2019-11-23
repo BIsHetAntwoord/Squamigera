@@ -11,9 +11,15 @@ void random_swap_sort(DWORD* data, size_t width, size_t height, C update) {
 
     while(1) {
         size_t idx = engine_generator() % (max-1);
+        size_t idx_2 = idx + 1;
+        if(idx < max - width) {
+            bool horizontal = engine_generator() % 2;
+            if(!horizontal)
+                idx_2 = idx + width;
+        }
 
         if(data[idx] > data[idx+1])
-            std::swap(data[idx], data[idx+1]);
+            std::swap(data[idx], data[idx_2]);
 
         update();
     }
